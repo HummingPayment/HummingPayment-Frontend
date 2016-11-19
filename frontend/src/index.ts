@@ -2,66 +2,55 @@
 /// <reference path="../typings/vue/vue.d.ts" />
 /// <reference path="../typings/jquery/jquery.d.ts" />
 
-var jQuery = $;
 require("babel-polyfill");
+import pageController = require("./page");
+import pageUtils = require("./page_utils");
+import loginController = require("./login");
+import userController = require("./user");
+var jQuery = $;
 
-var app: vuejs.Vue;
-
-function loadLoginPage () {
-    app.$data.pageTitle = "Login";
-    app.$data.showLoginForm = true;
-}
-
-function hideAlert() {
-    app.$data.mainAlertIsShowed = false;
-}
-
-function showAlert(msg: string) {
-    app.$data.mainAlertText = msg;
-    app.$data.mainAlertIsShowed = true;
-}
-
-async function doLogin() {
-    var resultStr: any = await new Promise(function(callback) {
-        jQuery.post("authenticate.php", function(resp) {
+async function loadInitialPage() {
+    let userInfoStr: any = await new Promise(function(callback) {
+        jQuery.post("get_current_user_info.php", {}, function(resp) {
             callback(resp);
         })
     });
 
-    let result = null;
-
+    let userInfo = null;
     try {
-        result = JSON.parse(resultStr);
+        userInfo = JSON.parse(userInfoStr);
     } catch(e) {
-        showAlert("Login failed: Unable to parse response");
+        loginController.loadLoginPage();
         return;
     }
 
-    if(result.err !== 0) {
-        showAlert("Error " + result.err.toString() + ": " + result.msg);
-    } else {
-        showAlert("Logged in");
-        location.replace(result.location);
+    if(userInfo.err !== 0) {
+        loginController.loadLoginPage();
+        return;
     }
+
+    userController.loadUserPage(userInfo.userId.toString());
 }
 
-function initPage() {
-    app = new Vue({
+async function initPage() {
+    pageController.app = new Vue({
         el: "#container",
         data: {
             "pageTitle": "",
-            "mainAlertIsShowed": false,
-            "mainAlertText": "",
+            "mainAlertIsShowed": true,
+            "mainAlertText": "Loading",
             "showLoginForm": false,
             "loginUserName": "",
-            "loginPassword": ""
+            "loginPassword": "",
+            "showUserInfoTable": false,
+            "currentUserId": ""
         },
         methods: {
-            "doLogin": doLogin,
-            "hideAlert": hideAlert
+            "doLogin": loginController.doLogin,
+            "hideAlert": pageUtils.hideAlert
         }
     });
-    loadLoginPage();
+    loadInitialPage();
 }
 
 window.addEventListener("load", initPage);
