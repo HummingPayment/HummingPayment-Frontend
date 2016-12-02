@@ -1,1 +1,3 @@
-# prepay-rfid-payment
+# HummingPayment-Frontend
+
+This is the frontend for HummingPayment Portal.
